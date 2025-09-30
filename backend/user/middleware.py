@@ -1,6 +1,7 @@
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
-from apps.user.models import User
+from user.models import User
+from user.services import UserService
 
 
 class WebSocketAuthMiddleware:
@@ -26,7 +27,6 @@ class WebSocketAuthMiddleware:
     def get_user_from_token(self, token):
         try:
             # First try Firebase token
-            from apps.user.services import UserService
             firebase_user = UserService.verify_firebase_token(token)
             
             if firebase_user:

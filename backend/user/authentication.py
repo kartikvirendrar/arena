@@ -2,7 +2,8 @@ from rest_framework import authentication, exceptions
 from django.contrib.auth.models import AnonymousUser
 from firebase_admin import auth as firebase_auth
 import logging
-from .models import User
+from user.models import User
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 

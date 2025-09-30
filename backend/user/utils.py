@@ -3,8 +3,11 @@ from django.core.cache import cache
 from typing import Optional, Dict
 import jwt
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
+from .models import User
+from chat_session.models import ChatSession
+from feedback.models import Feedback
 
 logger = logging.getLogger(__name__)
 
@@ -153,8 +156,6 @@ class GoogleAuthHelper:
 
 def cleanup_expired_anonymous_users():
     """Cleanup expired anonymous users - to be run as a periodic task"""
-    from .models import User
-    from apps.chat.models import ChatSession
     
     expired_users = User.objects.filter(
         is_anonymous=True,
@@ -178,8 +179,6 @@ def cleanup_expired_anonymous_users():
 
 def merge_user_data(source_user, target_user):
     """Merge data from source user to target user"""
-    from apps.chat.models import ChatSession, Message
-    from apps.feedback.models import Feedback
     
     # Update all related objects
     ChatSession.objects.filter(user=source_user).update(user=target_user)

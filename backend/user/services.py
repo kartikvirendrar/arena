@@ -3,7 +3,9 @@ from django.utils import timezone
 from firebase_admin import auth as firebase_auth
 from typing import Optional, Dict
 import logging
-from .models import User
+from user.models import User
+from chat_session.models import ChatSession
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,6 @@ class UserService:
     @staticmethod
     def create_anonymous_user(display_name: Optional[str] = None) -> User:
         """Create an anonymous user"""
-        import uuid
         
         if not display_name:
             display_name = f"Anonymous_{str(uuid.uuid4())[:8]}"
@@ -72,9 +73,7 @@ class UserService:
         anonymous_user: User, 
         authenticated_user: User
     ) -> User:
-        """Merge anonymous user data to authenticated user"""
-        from apps.chat.models import ChatSession
-        
+        """Merge anonymous user data to authenticated user"""        
         # Transfer chat sessions
         ChatSession.objects.filter(user=anonymous_user).update(
             user=authenticated_user
