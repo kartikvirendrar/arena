@@ -14,7 +14,7 @@ certbot/certbot.sh
 __pycache__
 media/
 static/
-frontend/
+
 
 
 # Env
