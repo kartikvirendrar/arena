@@ -295,4 +295,132 @@ class ModelComparisonService:
                 comparison['category_breakdown'][category] = {
                     'model_a': {
                         'elo_rating': metric_a.elo_rating,
-                        'win_rate': (metric_a.wins / metric_a.total_comparisons * 
+                        'win_rate': (metric_a.wins / metric_a.total_comparisons * 100) if metric_a.total_comparisons > 0 else 0,
+                        'average_rating': metric_a.average_rating
+                    },
+                    'model_b': {
+                        'elo_rating': metric_b.elo_rating,
+                        'win_rate': (metric_b.wins / metric_b.total_comparisons * 100) if metric_b.total_comparisons > 0 else 0,
+                        'average_rating': metric_b.average_rating
+                    },
+                    'difference': {
+                        'elo_rating': metric_a.elo_rating - metric_b.elo_rating,
+                        'win_rate': ((metric_a.wins / metric_a.total_comparisons * 100) if metric_a.total_comparisons > 0 else 0) - 
+                                   ((metric_b.wins / metric_b.total_comparisons * 100) if metric_b.total_comparisons > 0 else 0),
+                        'average_rating': (metric_a.average_rating or 0) - (metric_b.average_rating or 0)
+                    }
+                }
+        
+        # Historical comparison (last 30 days)
+        start_date = timezone.now() - timedelta(days=30)
+        
+        historical_a = ModelMetric.objects.filter(
+            model=model_a,
+            category='overall',
+            period='daily',
+            calculated_at__gte=start_date
+        ).order_by('calculated_at').values(
+            'calculated_at', 'elo_rating', 'average_rating'
+        )
+        
+        historical_b = ModelMetric.objects.filter(
+            model=model_b,
+            category='overall',
+            period='daily',
+            calculated_at__gte=start_date
+        ).order_by('calculated_at').values(
+            'calculated_at', 'elo_rating', 'average_rating'
+        )
+        
+        # Merge historical data
+        dates_a = {h['calculated_at'].date(): h for h in historical_a}
+        dates_b = {h['calculated_at'].date(): h for h in historical_b}
+        
+        all_dates = sorted(set(dates_a.keys()) | set(dates_b.keys()))
+        
+        for date in all_dates:
+            comparison['historical_comparison'].append({
+                'date': date,
+                'model_a': {
+                    'elo_rating': dates_a.get(date, {}).get('elo_rating'),
+                    'average_rating': dates_a.get(date, {}).get('average_rating')
+                } if date in dates_a else None,
+                'model_b': {
+                    'elo_rating': dates_b.get(date, {}).get('elo_rating'),
+                    'average_rating': dates_b.get(date, {}).get('average_rating')
+                } if date in dates_b else None
+            })
+        
+        # Overall performance comparison
+        latest_a = ModelMetric.objects.filter(
+            model=model_a,
+            category='overall',
+            period='all_time'
+        ).order_by('-calculated_at').first()
+        
+        latest_b = ModelMetric.objects.filter(
+            model=model_b,
+            category='overall',
+            period='all_time'
+        ).order_by('-calculated_at').first()
+        
+        if latest_a and latest_b:
+            comparison['performance_comparison'] = {
+                'model_a_better': latest_a.elo_rating > latest_b.elo_rating,
+                'elo_difference': latest_a.elo_rating - latest_b.elo_rating,
+                'win_rate_difference': ((latest_a.wins / latest_a.total_comparisons * 100) if latest_a.total_comparisons > 0 else 0) -
+                                     ((latest_b.wins / latest_b.total_comparisons * 100) if latest_b.total_comparisons > 0 else 0),
+                'rating_difference': (latest_a.average_rating or 0) - (latest_b.average_rating or 0)
+            }
+        
+        return comparison
+    
+    @staticmethod
+    def _get_head_to_head_stats(model_a: AIModel, model_b: AIModel) -> Dict:
+        """Get direct head-to-head statistics"""
+        from apps.chat_session.models import ChatSession
+        
+        # Find sessions where both models were compared
+        comparison_sessions = ChatSession.objects.filter(
+            mode='compare'
+        ).filter(
+            (Q(model_a=model_a) & Q(model_b=model_b)) |
+            (Q(model_a=model_b) & Q(model_b=model_a))
+        )
+        
+        # Get feedback from these sessions
+        head_to_head = {
+            'total_comparisons': 0,
+            'model_a_wins': 0,
+            'model_b_wins': 0,
+            'ties': 0,
+            'win_percentage': {
+                'model_a': 0,
+                'model_b': 0
+            }
+        }
+        
+        preference_feedback = Feedback.objects.filter(
+            session__in=comparison_sessions,
+            feedback_type='preference'
+        )
+        
+        head_to_head['total_comparisons'] = preference_feedback.count()
+        
+        for feedback in preference_feedback:
+            if feedback.preferred_model == model_a:
+                head_to_head['model_a_wins'] += 1
+            elif feedback.preferred_model == model_b:
+                head_to_head['model_b_wins'] += 1
+            else:
+                head_to_head['ties'] += 1
+        
+        if head_to_head['total_comparisons'] > 0:
+            head_to_head['win_percentage']['model_a'] = round(
+                (head_to_head['model_a_wins'] / head_to_head['total_comparisons']) * 100, 2
+            )
+            head_to_head['win_percentage']['model_b'] = round(
+                (head_to_head['model_b_wins'] / head_to_head['total_comparisons']) * 100, 2
+            )
+        
+        return head_to_head
