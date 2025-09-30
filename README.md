@@ -1,8 +1,8 @@
-# AI Model Playground
+# Indic LLM Arena
 
-A production-ready platform for interacting with and comparing leading AI language models from OpenAI, Google, Anthropic, Meta, and more. Built with Django REST Framework and React.
+A production-ready platform for interacting with and comparing leading LLMs from India. Built with Django REST Framework and React.
 
-![AI Model Playground](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Indic LLM Arena](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-green.svg)
 ![React](https://img.shields.io/badge/react-18.2+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -20,7 +20,7 @@ A production-ready platform for interacting with and comparing leading AI langua
 ### Advanced Features
 - **⭐ Comprehensive Feedback** - Rate responses and provide detailed feedback
 - **🏆 ELO Leaderboard** - Track model performance with ELO ratings
-- **🔐 Dual Authentication** - Google OAuth and anonymous sessions
+- **🔐 Dual Authentication** - Google OAuth & Anonymous sessions
 - **💾 Session Persistence** - Continue conversations across sessions
 - **📱 Responsive Design** - Works seamlessly on desktop and mobile
 
