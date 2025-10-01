@@ -1,8 +1,9 @@
 from django.db import models
+from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.fields import ArrayField
 import uuid
-from aiModel.models import AIModel
-from chatSession.models import ChatSession
+from ai_model.models import AIModel
+from chat_session.models import ChatSession
 
 class Message(models.Model):
     ROLE_CHOICES = [
@@ -64,8 +65,8 @@ class Message(models.Model):
         ordering = ['session', 'position']
         indexes = [
             models.Index(fields=['session', 'position']),
-            models.GinIndex(fields=['parent_message_ids']),
-            models.GinIndex(fields=['child_ids']),
+            GinIndex(fields=['parent_message_ids']),
+            GinIndex(fields=['child_ids']),
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
         ]

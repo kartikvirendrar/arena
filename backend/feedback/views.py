@@ -4,20 +4,20 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Avg, Q
-from datetime import timedelta
+from datetime import timedelta, timezone, datetime
 
-from .models import Feedback
-from .serializers import (
+from feedback.models import Feedback
+from feedback.serializers import (
     FeedbackSerializer, FeedbackCreateSerializer,
     BulkFeedbackSerializer, SessionFeedbackSummarySerializer,
     ModelFeedbackStatsSerializer
 )
-from .services import FeedbackService, FeedbackAnalyticsService
-from .analytics import FeedbackAnalyzer
-from .permissions import IsFeedbackOwner
-from apps.user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
-from apps.chat_session.models import ChatSession
-from apps.ai_model.models import AIModel
+from feedback.services import FeedbackService, FeedbackAnalyticsService
+from feedback.analytics import FeedbackAnalyzer
+from feedback.permissions import IsFeedbackOwner
+from user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
+from chat_session.models import ChatSession
+from ai_model.models import AIModel
 
 
 class FeedbackViewSet(viewsets.ModelViewSet):
@@ -173,7 +173,6 @@ class FeedbackReportView(views.APIView):
     
     def get(self, request):
         """Generate feedback report for a date range"""
-        from datetime import datetime
         
         # Parse date parameters
         start_date = request.query_params.get('start_date')

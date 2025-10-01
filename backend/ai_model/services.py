@@ -4,11 +4,11 @@ from django.conf import settings
 from django.core.cache import cache
 import logging
 
-from .models import AIModel
-from .providers import (
-    OpenAIProvider, GoogleAIProvider, AnthropicProvider,
-    MetaProvider, MistralProvider
-)
+from ai_model.models import AIModel
+from ai_model.providers.anthropic_provider import AnthropicProvider
+from ai_model.providers.google_provider import GoogleAIProvider
+from ai_model.providers.openai_provider import OpenAIProvider
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,8 @@ class AIModelService:
         'openai': OpenAIProvider,
         'google': GoogleAIProvider,
         'anthropic': AnthropicProvider,
-        'meta': MetaProvider,
-        'mistral': MistralProvider,
+        # 'meta': MetaProvider,
+        # 'mistral': MistralProvider,
     }
     
     def __init__(self):

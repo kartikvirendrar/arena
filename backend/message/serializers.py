@@ -1,11 +1,10 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import Message, MessageRelation
-from apps.ai_model.serializers import AIModelListSerializer
-from apps.ai_model.models import AIModel
+from message.models import Message, MessageRelation
+from ai_model.serializers import AIModelListSerializer
+from ai_model.models import AIModel
 import uuid
 from django.db.models import F
-from django.contrib.postgres.expressions import ArrayAppend
 
 class MessageSerializer(serializers.ModelSerializer):
     """Full message serializer"""
@@ -108,7 +107,7 @@ class MessageCreateSerializer(serializers.ModelSerializer):
             # Update parent messages' child_ids
             if parent_ids:
                 Message.objects.filter(id__in=parent_ids).update(
-                    child_ids=ArrayAppend(F('child_ids'), message.id)
+                    child_ids=F('child_ids') + [message.id]
                 )
             
             # Create message relations

@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import ChatSession
+from chat_session.models import ChatSession
+from chat_session.services import ChatSessionService
 
 
 @admin.register(ChatSession)
@@ -89,9 +90,7 @@ class ChatSessionAdmin(admin.ModelAdmin):
         return "Not shared"
     share_link.short_description = 'Share Link'
     
-    def session_statistics(self, obj):
-        from .services import ChatSessionService
-        
+    def session_statistics(self, obj):        
         try:
             stats = ChatSessionService.get_session_statistics(obj)
             

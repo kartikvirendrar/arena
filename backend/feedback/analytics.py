@@ -4,7 +4,9 @@ from django.utils import timezone
 from datetime import timedelta
 import pandas as pd
 from collections import defaultdict
-
+import statistics
+from feedback.models import Feedback
+from ai_model.models import AIModel
 
 class FeedbackAnalyzer:
     """Advanced analytics for feedback data"""
@@ -12,7 +14,6 @@ class FeedbackAnalyzer:
     @staticmethod
     def analyze_user_preferences(user, time_period: Optional[timedelta] = None) -> Dict:
         """Analyze user's feedback patterns and preferences"""
-        from .models import Feedback
         
         feedbacks = Feedback.objects.filter(user=user)
         
@@ -112,7 +113,6 @@ class FeedbackAnalyzer:
         
         for model_id, ratings in model_ratings.items():
             if len(ratings) > 1:
-                import statistics
                 std_dev = statistics.stdev(ratings)
                 # Lower std dev = higher consistency
                 consistency = max(0, 100 - (std_dev * 20))
@@ -129,8 +129,6 @@ class FeedbackAnalyzer:
         end_date: timezone.datetime
     ) -> Dict:
         """Generate comprehensive feedback report for a time period"""
-        from .models import Feedback
-        from apps.ai_model.models import AIModel
         
         feedbacks = Feedback.objects.filter(
             created_at__range=[start_date, end_date]

@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from aiModel.models import AIModel
+from ai_model.models import AIModel
 import uuid
 
 class ModelMetric(models.Model):

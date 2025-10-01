@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import Feedback
-from apps.ai_model.models import AIModel
-from apps.chat_session.models import ChatSession
-from apps.message.models import Message
-from apps.ai_model.serializers import AIModelListSerializer
+from feedback.models import Feedback
+from ai_model.models import AIModel
+from chat_session.models import ChatSession
+from message.models import Message
+from ai_model.serializers import AIModelListSerializer
+from feedback.services import FeedbackAnalyticsService
 
 
 class FeedbackSerializer(serializers.ModelSerializer):
@@ -156,7 +157,6 @@ class FeedbackCreateSerializer(serializers.ModelSerializer):
         feedback = super().create(validated_data)
         
         # Trigger analytics update
-        from .services import FeedbackAnalyticsService
         FeedbackAnalyticsService.process_new_feedback(feedback)
         
         return feedback
@@ -181,7 +181,6 @@ class BulkFeedbackSerializer(serializers.Serializer):
                 created_feedbacks.append(feedback)
         
         # Process analytics for all feedbacks
-        from .services import FeedbackAnalyticsService
         for feedback in created_feedbacks:
             FeedbackAnalyticsService.process_new_feedback(feedback)
         

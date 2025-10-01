@@ -2,16 +2,16 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 import logging
-
+from model_metrics.models import AIModel, ModelMetric
+from feedback.models import Feedback
+from django.db.models import Count, Avg, Q
 logger = logging.getLogger(__name__)
-
+from ai_model.utils import EloRatingCalculator
+from ai_model.services import AIModelService
 
 @shared_task
 def calculate_model_metrics(period='daily'):
     """Calculate model metrics for the specified period"""
-    from .models import AIModel, ModelMetric
-    from apps.feedback.models import Feedback
-    from django.db.models import Count, Avg, Q
     
     # Determine time range
     now = timezone.now()
@@ -78,9 +78,6 @@ def calculate_model_metrics(period='daily'):
 @shared_task
 def update_model_elo_ratings():
     """Update ELO ratings based on recent comparisons"""
-    from .models import ModelMetric
-    from .utils import EloRatingCalculator
-    from apps.feedback.models import Feedback
     
     # Get recent feedback that hasn't been processed
     recent_feedback = Feedback.objects.filter(
@@ -118,8 +115,6 @@ def update_model_elo_ratings():
 @shared_task
 def validate_all_models():
     """Validate all active models and update their status"""
-    from .models import AIModel
-    from .services import AIModelService
     
     service = AIModelService()
     models = AIModel.objects.filter(is_active=True)
@@ -148,7 +143,6 @@ def validate_all_models():
 @shared_task
 def cleanup_old_metrics():
     """Clean up old metrics to prevent database bloat"""
-    from .models import ModelMetric
     
     # Keep only the latest metric for each period/category combination
     cutoff_dates = {

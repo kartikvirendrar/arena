@@ -2,6 +2,14 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 import logging
+from chat_session.models import ChatSession
+from message.models import Message
+from chat_session.services import ChatSessionService
+from django.core.mail import EmailMessage
+from chat_session.utils import SessionAnalyzer
+from django.core.cache import cache
+import zipfile
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +17,6 @@ logger = logging.getLogger(__name__)
 @shared_task
 def cleanup_expired_sessions():
     """Clean up expired anonymous sessions"""
-    from .services import ChatSessionService
     
     count = ChatSessionService.cleanup_expired_sessions()
     logger.info(f"Cleaned up {count} expired sessions")
@@ -19,8 +26,6 @@ def cleanup_expired_sessions():
 @shared_task
 def generate_session_titles():
     """Generate titles for untitled sessions based on content"""
-    from .models import ChatSession
-    from apps.message.models import Message
     
     untitled_sessions = ChatSession.objects.filter(
         title__isnull=True,
@@ -49,9 +54,6 @@ def generate_session_titles():
 @shared_task
 def calculate_session_analytics():
     """Calculate analytics for active sessions"""
-    from .models import ChatSession
-    from .utils import SessionAnalyzer
-    from django.core.cache import cache
     
     # Get sessions with recent activity
     recent_sessions = ChatSession.objects.filter(
@@ -71,11 +73,6 @@ def calculate_session_analytics():
 @shared_task
 def export_session_batch(session_ids: list, user_email: str, format: str = 'json'):
     """Export multiple sessions and send to user"""
-    from .models import ChatSession
-    from .services import ChatSessionService
-    from django.core.mail import EmailMessage
-    import zipfile
-    import io
     
     sessions = ChatSession.objects.filter(id__in=session_ids)
     

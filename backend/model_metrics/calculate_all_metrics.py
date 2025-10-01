@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from apps.ai_model.models import AIModel
-from apps.model_metrics.calculators import MetricsCalculator
+from ai_model.models import AIModel
+from model_metrics.calculators import MetricsCalculator
 
 
 class Command(BaseCommand):

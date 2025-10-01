@@ -1,16 +1,16 @@
+from datetime import timezone
 from typing import List, Dict, Optional, AsyncGenerator
 from django.db import transaction
+from message.serializers import MessageSerializer
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync, sync_to_async
 import asyncio
 import json
-
-from .models import Message, MessageRelation
-from apps.chat_session.models import ChatSession
-from apps.ai_model.models import AIModel
-from apps.ai_model.services import AIModelService
+from message.models import Message, MessageRelation
+from chat_session.models import ChatSession
+from ai_model.models import AIModel
+from ai_model.services import AIModelService
 from django.db.models import F
-from django.contrib.postgres.expressions import ArrayAppend
 
 class MessageService:
     """Service for managing messages"""
@@ -47,7 +47,7 @@ class MessageService:
                 Message.objects.filter(
                     id__in=parent_message_ids
                 ).update(
-                    child_ids=ArrayAppend(F('child_ids'), message.id)
+                    child_ids=F('child_ids') + [message.id]
                 )
                 
                 # Create relations

@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from apps.ai_model.models import ModelMetric, AIModel
-from apps.ai_model.serializers import AIModelListSerializer
+from model_metrics.models import ModelMetric
+from ai_model.serializers import AIModelListSerializer
 
 
 class ModelMetricSerializer(serializers.ModelSerializer):

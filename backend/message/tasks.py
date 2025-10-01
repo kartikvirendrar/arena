@@ -2,14 +2,15 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 import logging
-
+from message.models import Message
+from message.utils import MessageCache, MessageAnalyzer
+from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 
 @shared_task
 def cleanup_orphaned_messages():
     """Clean up messages with broken relationships"""
-    from .models import Message
     
     # Find messages with parent_ids that don't exist
     orphaned_count = 0
@@ -33,7 +34,6 @@ def cleanup_orphaned_messages():
 @shared_task
 def analyze_failed_messages():
     """Analyze failed messages and attempt to categorize failures"""
-    from .models import Message
     
     failed_messages = Message.objects.filter(
         status='failed',
@@ -70,9 +70,6 @@ def analyze_failed_messages():
 @shared_task
 def calculate_message_metrics():
     """Calculate and cache message metrics"""
-    from .models import Message
-    from .utils import MessageCache, MessageAnalyzer
-    from django.core.cache import cache
     
     # Get recent sessions with messages
     recent_messages = Message.objects.filter(
@@ -119,8 +116,6 @@ def calculate_message_metrics():
 @shared_task
 def detect_conversation_loops():
     """Detect potential conversation loops or repetitive patterns"""
-    from .models import Message
-    from .utils import MessageAnalyzer
     
     # Get recent conversations
     sessions_with_loops = []

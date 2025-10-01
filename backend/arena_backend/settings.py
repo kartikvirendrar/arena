@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 from celery.schedules import crontab
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'django.contrib.postgres',
     "ai_model",
     "chat_session",
     "feedback",
@@ -79,8 +81,8 @@ WSGI_APPLICATION = "arena_backend.wsgi.application"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'apps.user.authentication.FirebaseAuthentication',
-        'apps.user.authentication.AnonymousTokenAuthentication',
+        'user.authentication.FirebaseAuthentication',
+        'user.authentication.AnonymousTokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -170,7 +172,7 @@ CACHES = {
 
 CELERY_BEAT_SCHEDULE = {
     'cleanup-anonymous-users': {
-        'task': 'apps.user.tasks.cleanup_expired_anonymous_users',
+        'task': 'user.tasks.cleanup_expired_anonymous_users',
         'schedule': crontab(hour=2, minute=0),  # Run daily at 2 AM
     },
     'calculate-daily-metrics': {
@@ -228,5 +230,5 @@ CHANNEL_LAYERS = {
 # WebSocket authentication
 CHANNELS_MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.user.middleware.WebSocketAuthMiddleware',  # Custom middleware for token auth
+    'user.middleware.WebSocketAuthMiddleware',  # Custom middleware for token auth
 ]

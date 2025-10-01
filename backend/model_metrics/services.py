@@ -6,12 +6,12 @@ from django.core.cache import cache
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-
-from apps.ai_model.models import ModelMetric, AIModel
-from apps.feedback.models import Feedback
-from apps.message.models import Message
-from .calculators import MetricsCalculator
-
+from ai_model.models import AIModel
+from model_metrics.models import ModelMetric
+from feedback.models import Feedback
+from message.models import Message
+from model_metrics.calculators import MetricsCalculator
+from chat_session.models import ChatSession
 
 class ModelMetricsService:
     """Service for managing model metrics"""
@@ -378,7 +378,6 @@ class ModelComparisonService:
     @staticmethod
     def _get_head_to_head_stats(model_a: AIModel, model_b: AIModel) -> Dict:
         """Get direct head-to-head statistics"""
-        from apps.chat_session.models import ChatSession
         
         # Find sessions where both models were compared
         comparison_sessions = ChatSession.objects.filter(

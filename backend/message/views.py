@@ -4,17 +4,16 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 import asyncio
-
-from .models import Message
-from .serializers import (
+from message.models import Message
+from message.serializers import (
     MessageSerializer, MessageCreateSerializer, MessageStreamSerializer,
     MessageTreeSerializer, MessageBranchSerializer, MessageRegenerateSerializer
 )
-from .services import MessageService, MessageComparisonService
-from .streaming import StreamingManager
-from .permissions import IsMessageOwner
-from apps.chat_session.models import ChatSession
-from apps.user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
+from message.services import MessageService, MessageComparisonService
+from message.streaming import StreamingManager
+from message.permissions import IsMessageOwner
+from chat_session.models import ChatSession
+from user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
 
 
 class MessageViewSet(viewsets.ModelViewSet):

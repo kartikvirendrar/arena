@@ -7,14 +7,15 @@ from django.db.models import Q, Count, Avg
 import json
 import asyncio
 
-from .models import AIModel, ModelMetric
-from .serializers import (
+from model_metrics.models import AIModel, ModelMetric
+from ai_model.serializers import (
     AIModelSerializer, AIModelListSerializer, ModelMetricSerializer,
     ModelComparisonSerializer, ModelTestSerializer, ModelCapabilitySerializer
 )
-from .services import AIModelService
-from apps.user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
-
+from ai_model.services import AIModelService
+from user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
+from message.models import Message
+from feedback.models import Feedback
 
 class AIModelViewSet(viewsets.ModelViewSet):
     """ViewSet for AI Model management"""
@@ -271,8 +272,6 @@ class ModelStatsView(views.APIView):
             )
         
         # Calculate statistics
-        from apps.chat.models import Message
-        from apps.feedback.models import Feedback
         
         stats = {
             'model': AIModelSerializer(model).data,
@@ -318,7 +317,6 @@ class ModelStatsView(views.APIView):
     
     def _get_comparison_stats(self, model):
         """Get comparison statistics against other models"""
-        from apps.feedback.models import Feedback
         
         # Get all comparisons where this model participated
         comparisons = Feedback.objects.filter(

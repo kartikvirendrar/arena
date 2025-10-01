@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from chat_session.models import ChatSession
 
 
 class IsFeedbackOwner(permissions.BasePermission):
@@ -27,7 +28,6 @@ class CanProvideFeedback(permissions.BasePermission):
             return True  # Will be validated in serializer
         
         try:
-            from apps.chat_session.models import ChatSession
             session = ChatSession.objects.get(id=session_id)
             return session.user == request.user or session.is_public
         except ChatSession.DoesNotExist:
