@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import ChatSession
-from apps.user.serializers import UserPublicSerializer
-from apps.ai_model.serializers import AIModelListSerializer
-from apps.ai_model.models import AIModel
+from chat_session.models import ChatSession
+from user.serializers import UserPublicSerializer
+from ai_model.serializers import AIModelListSerializer
+from ai_model.models import AIModel
 import secrets
 
 

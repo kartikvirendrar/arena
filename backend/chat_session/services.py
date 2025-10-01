@@ -5,10 +5,14 @@ import random
 import json
 import markdown
 
-from .models import ChatSession
-from apps.ai_model.models import AIModel
-from apps.ai_model.utils import ModelSelector
-from apps.message.models import Message
+from chat_session.models import ChatSession
+from ai_model.models import AIModel
+from ai_model.utils import ModelSelector
+from message.models import Message
+from feedback.models import Feedback
+from django.db.models import Avg, Count, Q, Max
+from ai_model.utils import count_tokens, ModelCostCalculator
+from datetime import timedelta
 
 
 class ChatSessionService:
@@ -216,8 +220,6 @@ class ChatSessionService:
     @staticmethod
     def get_session_statistics(session: ChatSession) -> Dict:
         """Get detailed statistics for a session"""
-        from apps.feedback.models import Feedback
-        from django.db.models import Avg, Count, Q
         
         messages = session.messages.all()
         
@@ -258,9 +260,7 @@ class ChatSessionService:
                     model_messages = messages.filter(model=model)
                     stats['messages']['by_model'][model.display_name] = model_messages.count()
         
-        # Token usage and cost estimation
-        from apps.ai_model.utils import count_tokens, ModelCostCalculator
-        
+        # Token usage and cost estimation        
         for msg in messages:
             tokens = count_tokens(msg.content)
             if msg.role == 'user':
@@ -317,8 +317,6 @@ class ChatSessionService:
     @staticmethod
     def get_trending_sessions(limit: int = 10) -> List[ChatSession]:
         """Get trending public sessions based on recent activity"""
-        from django.db.models import Count, Max
-        from datetime import timedelta
         
         # Look at sessions with activity in the last 7 days
         recent_date = timezone.now() - timedelta(days=7)

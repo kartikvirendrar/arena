@@ -34,7 +34,12 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('users/', include('apps.user.urls')),
+    path('users/', include('user.urls')),
+    path('ai_model/', include('ai_model.urls')),
+    path('chat_session/', include('chat_session.urls')),
+    path('feedback/', include('feedback.urls')),
+    path('message/', include('message.urls')),
+    path('model_metrics/', include('model_metrics.urls')),
 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),

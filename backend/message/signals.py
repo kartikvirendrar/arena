@@ -1,9 +1,10 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from message.utlis import MessageCache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Message
-from .serializers import MessageSerializer
+from message.models import Message
+from message.serializers import MessageSerializer
 
 
 @receiver(post_save, sender=Message)
@@ -26,7 +27,6 @@ def message_saved(sender, instance, created, **kwargs):
     )
     
     # Invalidate caches
-    from .utils import MessageCache
     MessageCache.invalidate_message_cache(str(instance.id))
 
 

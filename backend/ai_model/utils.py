@@ -3,6 +3,11 @@ from django.core.cache import cache
 from django.db.models import F
 import math
 import logging
+from ai_model.models import AIModel
+import random
+from model_metrics.models import ModelMetric
+import markdown
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +50,6 @@ class EloRatingCalculator:
         Update model ELO ratings based on comparison result
         result: 'a_wins', 'b_wins', or 'tie'
         """
-        from .models import ModelMetric
         
         # Get current ratings
         metric_a = ModelMetric.objects.filter(
@@ -145,8 +149,6 @@ class ModelSelector:
         category: Optional[str] = None
     ) -> tuple:
         """Get two random models for comparison"""
-        from .models import AIModel
-        import random
         
         queryset = AIModel.objects.filter(is_active=True)
         
@@ -169,7 +171,6 @@ class ModelSelector:
         task_type: str = 'general'
     ) -> Optional['AIModel']:
         """Get recommended model based on user preferences and task"""
-        from .models import AIModel, ModelMetric
         
         # Start with active models
         queryset = AIModel.objects.filter(is_active=True)
@@ -223,11 +224,9 @@ def format_model_response(response: str, format_type: str = 'markdown') -> str:
         # Already in markdown
         return response
     elif format_type == 'html':
-        import markdown
         return markdown.markdown(response)
     elif format_type == 'plain':
         # Strip markdown formatting
-        import re
         # Remove markdown links
         response = re.sub(r'$$([^$$]+)\]$[^$]+\)', r'\1', response)
         # Remove bold/italic

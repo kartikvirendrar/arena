@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
-from .models import Message, MessageRelation
+from message.utlis import MessageAnalyzer
+from message.models import Message, MessageRelation
 
 
 @admin.register(Message)
@@ -59,7 +60,6 @@ class MessageAdmin(admin.ModelAdmin):
     
     def formatted_content(self, obj):
         """Display formatted content with syntax highlighting"""
-        from .utils import MessageAnalyzer
         
         content = escape(obj.content)
         
@@ -143,7 +143,6 @@ class MessageAdmin(admin.ModelAdmin):
     mark_as_failed.short_description = 'Mark selected messages as failed'
     
     def analyze_messages(self, request, queryset):
-        from .utils import MessageAnalyzer
         
         analysis = MessageAnalyzer.analyze_conversation_quality(list(queryset))
         

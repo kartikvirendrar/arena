@@ -1,8 +1,7 @@
-# apps/ai_model/admin.py
-
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import AIModel, ModelMetric
+from model_metrics.models import AIModel, ModelMetric
+from message.models import Message
 
 
 @admin.register(AIModel)
@@ -63,7 +62,6 @@ class AIModelAdmin(admin.ModelAdmin):
     
     def usage_stats(self, obj):
         """Display usage statistics"""
-        from apps.chat.models import Message
         
         total_messages = Message.objects.filter(model=obj).count()
         latest_metric = obj.metrics.filter(

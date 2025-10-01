@@ -4,11 +4,12 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 import statistics
-
-from .models import Feedback
-from apps.ai_model.models import AIModel, ModelMetric
-from apps.chat_session.models import ChatSession
-from apps.ai_model.utils import EloRatingCalculator
+from feedback.models import Feedback
+from model_metrics.models import AIModel, ModelMetric
+from chat_session.models import ChatSession
+from ai_model.utils import EloRatingCalculator
+from django.core.cache import cache
+from model_metrics.models import ModelMetric
 
 
 class FeedbackService:
@@ -233,7 +234,6 @@ class FeedbackAnalyticsService:
         FeedbackAnalyticsService._update_model_metrics(feedback)
         
         # Cache invalidation
-        from django.core.cache import cache
         cache_keys = [
             f"model_stats:{feedback.session.model_a_id}",
             f"model_stats:{feedback.session.model_b_id}",
@@ -273,7 +273,6 @@ class FeedbackAnalyticsService:
     @staticmethod
     def _update_model_metrics(feedback: Feedback):
         """Update model metrics based on feedback"""
-        from apps.ai_model.models import ModelMetric
         
         models_to_update = []
         

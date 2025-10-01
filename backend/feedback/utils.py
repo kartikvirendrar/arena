@@ -1,8 +1,13 @@
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 import numpy as np
-from datetime import datetime, timedelta
-
+from datetime import datetime, timedelta, timezone
+from scipy import stats
+from feedback.models import Feedback
+import csv
+import io
+from ai_model.models import AIModel
+from django.db.models import Count, Avg, Q
 
 class FeedbackMetrics:
     """Calculate various feedback metrics"""
@@ -15,9 +20,7 @@ class FeedbackMetrics:
         """
         if total == 0:
             return 0
-        
-        from scipy import stats
-        
+                
         z = stats.norm.ppf(1 - (1 - confidence) / 2)
         p = positive / total
         
@@ -90,7 +93,6 @@ class FeedbackValidator:
     @staticmethod
     def validate_preference_consistency(feedbacks: List['Feedback']) -> Dict:
         """Check for consistency in preference feedback"""
-        from .models import Feedback
         
         # Group by user and model pairs
         user_preferences = defaultdict(lambda: defaultdict(list))
@@ -139,7 +141,6 @@ class FeedbackValidator:
         time_window: timedelta = timedelta(minutes=5)
     ) -> Dict:
         """Check if user is potentially spamming feedback"""
-        from .models import Feedback
         
         recent_feedback = Feedback.objects.filter(
             user=user,
@@ -203,8 +204,6 @@ class FeedbackExporter:
     @staticmethod
     def export_to_csv(feedbacks, include_pii: bool = False) -> str:
         """Export feedback to CSV format"""
-        import csv
-        import io
         
         output = io.StringIO()
         
@@ -250,8 +249,6 @@ class FeedbackExporter:
         model_ids: Optional[List[str]] = None
     ) -> Dict:
         """Export analytics summary for reporting"""
-        from .models import Feedback
-        from apps.ai_model.models import AIModel
         
         # Base query
         feedbacks = Feedback.objects.filter(

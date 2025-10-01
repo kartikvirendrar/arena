@@ -1,3 +1,4 @@
+from datetime import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,15 +7,15 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, Http404
 from django.db.models import Count, Prefetch, Q
 
-from .models import ChatSession
-from .serializers import (
+from chat_session.models import ChatSession
+from chat_session.serializers import (
     ChatSessionSerializer, ChatSessionCreateSerializer,
     ChatSessionListSerializer, ChatSessionShareSerializer,
     ChatSessionDuplicateSerializer, ChatSessionExportSerializer
 )
-from .services import ChatSessionService
-from .permissions import IsSessionOwner, CanAccessSharedSession
-from apps.user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
+from chat_session.services import ChatSessionService
+from chat_session.permissions import IsSessionOwner, CanAccessSharedSession
+from user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
 
 
 class ChatSessionViewSet(viewsets.ModelViewSet):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import AIModel, ModelMetric
+from model_metrics.models import AIModel, ModelMetric
+from message.models import Message
 
 
 class AIModelSerializer(serializers.ModelSerializer):
@@ -30,7 +31,6 @@ class AIModelSerializer(serializers.ModelSerializer):
     
     def get_total_usage(self, obj):
         """Get total usage count"""
-        from apps.chat.models import Message
         return Message.objects.filter(model=obj).count()
 
 

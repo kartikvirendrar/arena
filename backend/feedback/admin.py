@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Count, Avg
-from .models import Feedback
-
+from feedback.models import Feedback
+from feedback.utils import FeedbackExporter
+from django.http import HttpResponse
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
@@ -93,8 +94,6 @@ class FeedbackAdmin(admin.ModelAdmin):
     actions = ['export_feedback', 'analyze_feedback_quality']
     
     def export_feedback(self, request, queryset):
-        from .utils import FeedbackExporter
-        from django.http import HttpResponse
         
         # Export to CSV
         csv_content = FeedbackExporter.export_to_csv(queryset, include_pii=False)

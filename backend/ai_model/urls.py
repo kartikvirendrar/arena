@@ -1,6 +1,6 @@
 from django.urls import path, include
+from ai_model.view import AIModelViewSet, ModelLeaderboardView, ModelStatsView
 from rest_framework.routers import DefaultRouter
-from .views import AIModelViewSet, ModelLeaderboardView, ModelStatsView
 
 app_name = 'ai_model'
 

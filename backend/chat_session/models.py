@@ -1,8 +1,8 @@
 from django.db import models
 import uuid
-
-from backend.aiModel.models import AIModel
-from backend.user.models import User
+import secrets
+from ai_model.models import AIModel
+from user.models import User
 
 
 class ChatSession(models.Model):
@@ -63,7 +63,6 @@ class ChatSession(models.Model):
     
     def generate_share_token(self):
         """Generate a unique share token"""
-        import secrets
         self.share_token = secrets.token_urlsafe(16)
         self.save()
         return self.share_token

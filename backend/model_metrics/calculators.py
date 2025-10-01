@@ -1,12 +1,14 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from django.db.models import Count, Avg, Q
+from django.db.models.functions import Length
 from django.utils import timezone
 from datetime import timedelta
 import math
-
-from apps.ai_model.models import AIModel, ModelMetric
-from apps.feedback.models import Feedback
-from apps.message.models import Message
+from ai_model.models import AIModel
+from model_metrics.models import ModelMetric
+from feedback.models import Feedback
+from message.models import Message
+from scipy import stats
 
 
 class MetricsCalculator:
@@ -129,7 +131,7 @@ class MetricsCalculator:
         
         # Average response length
         avg_length = message_query.aggregate(
-            avg_length=Avg(models.Length('content'))
+            avg_length=Avg(Length('content'))
         )['avg_length']
         
         if avg_length:
@@ -217,9 +219,7 @@ class EloCalculator:
         """Calculate confidence interval for win rate"""
         if total == 0:
             return 0.0, 0.0
-        
-        from scipy import stats
-        
+                
         p = wins / total
         z = stats.norm.ppf(1 - (1 - confidence) / 2)
         

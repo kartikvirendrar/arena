@@ -1,8 +1,8 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
-from aiModel.models import AIModel
-from chatSession.models import ChatSession
+from ai_model.models import AIModel
+from chat_session.models import ChatSession
 from message.models import Message
 from user.models import User
 

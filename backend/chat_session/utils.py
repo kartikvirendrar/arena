@@ -3,7 +3,9 @@ from django.core.cache import cache
 from django.db.models import Count, Avg, Q
 import json
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from chat_session.models import ChatSession
+from message.models import Message
 
 
 class SessionAnalyzer:
@@ -12,8 +14,6 @@ class SessionAnalyzer:
     @staticmethod
     def get_user_session_insights(user) -> Dict:
         """Get insights about user's chat sessions"""
-        from .models import ChatSession
-        from apps.message.models import Message
         
         sessions = ChatSession.objects.filter(user=user)
         
@@ -224,8 +224,6 @@ class SessionHasher:
         """Find sessions with similar content"""
         # This is a simplified version - in production, 
         # you might want to use more sophisticated similarity measures
-        
-        from .models import ChatSession
         
         current_hash = SessionHasher.generate_session_hash(session)
         similar_sessions = []

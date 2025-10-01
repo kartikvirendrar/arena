@@ -3,9 +3,8 @@ from django.db.models import Count, Avg, Sum, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 import pandas as pd
-
-from apps.ai_model.models import AIModel, ModelMetric
-from apps.feedback.models import Feedback
+from model_metrics.models import AIModel, ModelMetric
+from feedback.models import Feedback
 
 
 class MetricsAggregator:

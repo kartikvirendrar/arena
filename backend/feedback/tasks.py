@@ -2,16 +2,19 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 import logging
-
+from feedback.models import Feedback
+from model_metrics.models import ModelMetric, AIModel
+from django.db.models import Count, Avg, Q
 logger = logging.getLogger(__name__)
-
+from feedback.utils import FeedbackMetrics, FeedbackValidator
+from user.models import User
+from feedback.analytics import FeedbackAnalyzer
+from django.core.mail import send_mail
+from django.conf import settings
 
 @shared_task
 def update_model_metrics_from_feedback():
     """Update model metrics based on recent feedback"""
-    from .models import Feedback
-    from apps.ai_model.models import ModelMetric
-    from django.db.models import Count, Avg
     
     # Process feedback from last hour
     recent_feedback = Feedback.objects.filter(
@@ -32,7 +35,6 @@ def update_model_metrics_from_feedback():
     
     for model_id in models_to_update:
         # Calculate updated metrics
-        from apps.ai_model.models import AIModel
         
         try:
             model = AIModel.objects.get(id=model_id)
@@ -87,8 +89,6 @@ def update_model_metrics_from_feedback():
 @shared_task
 def detect_feedback_anomalies():
     """Detect unusual feedback patterns"""
-    from .models import Feedback
-    from .utils import FeedbackMetrics, FeedbackValidator
     
     # Check for spam feedback
     recent_users = Feedback.objects.filter(
@@ -98,7 +98,6 @@ def detect_feedback_anomalies():
     spam_users = []
     
     for user_id in recent_users:
-        from apps.user.models import User
         try:
             user = User.objects.get(id=user_id)
             validation = FeedbackValidator.validate_spam_feedback(user)
@@ -141,9 +140,6 @@ def detect_feedback_anomalies():
 @shared_task
 def generate_weekly_feedback_digest():
     """Generate weekly feedback digest for admin"""
-    from .analytics import FeedbackAnalyzer
-    from django.core.mail import send_mail
-    from django.conf import settings
     
     # Generate report for last 7 days
     end_date = timezone.now()
@@ -215,9 +211,6 @@ def cleanup_old_feedback():
 @shared_task
 def calculate_feedback_consistency_scores():
     """Calculate consistency scores for users"""
-    from .models import Feedback
-    from .utils import FeedbackValidator
-    from apps.user.models import User
     
     # Get users who have given feedback recently
     active_users = Feedback.objects.filter(

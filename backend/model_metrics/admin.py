@@ -2,8 +2,10 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 import json
-from apps.ai_model.models import ModelMetric
-
+from model_metrics.models import ModelMetric
+from django.http import HttpResponse
+from model_metrics.utils import MetricExporter
+from model_metrics.calculators import MetricsCalculator
 
 @admin.register(ModelMetric)
 class ModelMetricAdmin(admin.ModelAdmin):
@@ -120,7 +122,6 @@ class ModelMetricAdmin(admin.ModelAdmin):
             stats.append(f'</div>')
         
         # Rank information
-        from .calculators import MetricsCalculator
         percentile = MetricsCalculator.calculate_percentile_rank(
             obj.model, obj.category, 'elo_rating'
         )
@@ -198,7 +199,6 @@ class ModelMetricAdmin(admin.ModelAdmin):
     
     def recalculate_metrics(self, request, queryset):
         """Recalculate metrics for selected entries"""
-        from .calculators import MetricsCalculator
         
         updated = 0
         for metric in queryset:
@@ -214,8 +214,6 @@ class ModelMetricAdmin(admin.ModelAdmin):
     
     def export_metrics(self, request, queryset):
         """Export selected metrics to CSV"""
-        from django.http import HttpResponse
-        from .utils import MetricExporter
         
         csv_content = MetricExporter.export_to_csv(list(queryset))
         

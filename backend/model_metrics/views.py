@@ -5,16 +5,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import datetime, timedelta
-
-from apps.ai_model.models import AIModel, ModelMetric
-from .serializers import (
+from ai_model.models import AIModel
+from model_metrics.models import ModelMetric
+from model_metrics.serializers import (
     ModelMetricSerializer, LeaderboardSerializer, CategoryLeaderboardSerializer,
     ModelPerformanceSerializer, MetricAggregationSerializer,
     ModelComparisonMetricsSerializer
 )
-from .services import ModelMetricsService, ModelComparisonService
-from .aggregators import MetricsAggregator
-from .calculators import MetricsCalculator
+from model_metrics.services import ModelMetricsService, ModelComparisonService
+from model_metrics.aggregators import MetricsAggregator
+from model_metrics.calculators import MetricsCalculator
 
 
 class ModelMetricViewSet(viewsets.ReadOnlyModelViewSet):

@@ -3,15 +3,20 @@ from django.utils import timezone
 from django.db.models import Count, Avg, Q
 from datetime import timedelta
 import logging
-
+from ai_model.models import AIModel
+from model_metrics.calculators import MetricsCalculator
+from model_metrics.services import ModelMetricsService
+from model_metrics.models import ModelMetric
+from ai_model.models import AIModel
+from django.core.mail import send_mail
+from django.conf import settings
+from model_metrics.aggregators import MetricsAggregator
 logger = logging.getLogger(__name__)
 
 
 @shared_task
 def calculate_daily_metrics():
     """Calculate daily metrics for all active models"""
-    from apps.ai_model.models import AIModel
-    from .calculators import MetricsCalculator
     
     active_models = AIModel.objects.filter(is_active=True)
     
@@ -35,8 +40,6 @@ def calculate_daily_metrics():
 @shared_task
 def calculate_weekly_metrics():
     """Calculate weekly metrics for all active models"""
-    from apps.ai_model.models import AIModel
-    from .calculators import MetricsCalculator
     
     active_models = AIModel.objects.filter(is_active=True)
     
@@ -53,7 +56,6 @@ def calculate_weekly_metrics():
 @shared_task
 def update_leaderboard_cache():
     """Pre-calculate and cache leaderboard data"""
-    from .services import ModelMetricsService
     
     categories = ['overall', 'code', 'creative', 'reasoning', 'conversation']
     periods = ['daily', 'weekly', 'all_time']
@@ -74,8 +76,6 @@ def update_leaderboard_cache():
 @shared_task
 def detect_anomalous_metrics():
     """Detect anomalous metric changes"""
-    from apps.ai_model.models import ModelMetric
-    from .utils import MetricStatistics
     
     # Check for sudden ELO changes
     recent_metrics = ModelMetric.objects.filter(
@@ -113,10 +113,6 @@ def detect_anomalous_metrics():
 @shared_task
 def generate_metric_report():
     """Generate comprehensive metrics report"""
-    from apps.ai_model.models import AIModel, ModelMetric
-    from django.core.mail import send_mail
-    from django.conf import settings
-    from .aggregators import MetricsAggregator
     
     # Get top models by category
     categories = ['overall', 'code', 'creative', 'reasoning']
@@ -218,7 +214,6 @@ def generate_metric_report():
 @shared_task
 def cleanup_old_metrics():
     """Clean up old metrics to save space"""
-    from apps.ai_model.models import ModelMetric
     
     # Keep only latest daily metrics for past 90 days
     cutoff_daily = timezone.now() - timedelta(days=90)

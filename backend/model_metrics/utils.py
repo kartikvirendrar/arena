@@ -3,7 +3,10 @@ import numpy as np
 from scipy import stats
 from datetime import datetime, timedelta
 import json
-
+import csv
+import io
+from ai_model.models import AIModel
+from model_metrics.models import ModelMetric
 
 class MetricStatistics:
     """Statistical utilities for metrics"""
@@ -165,8 +168,6 @@ class MetricExporter:
     @staticmethod
     def export_to_csv(metrics: List['ModelMetric']) -> str:
         """Export metrics to CSV format"""
-        import csv
-        import io
         
         output = io.StringIO()
         

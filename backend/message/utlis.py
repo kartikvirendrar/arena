@@ -4,6 +4,7 @@ from django.db.models import Q, F
 import re
 import json
 from datetime import timedelta
+from message.models import Message
 
 
 class MessageAnalyzer:
@@ -129,7 +130,6 @@ class MessagePathfinder:
     @staticmethod
     def find_shortest_path(start: 'Message', end: 'Message') -> List['Message']:
         """Find shortest path between two messages using BFS"""
-        from .models import Message
         
         if start.session_id != end.session_id:
             return []
@@ -168,7 +168,6 @@ class MessagePathfinder:
     @staticmethod
     def find_all_paths(start: 'Message', end: 'Message', max_depth: int = 10) -> List[List['Message']]:
         """Find all possible paths between two messages"""
-        from .models import Message
         
         if start.session_id != end.session_id:
             return []
@@ -224,7 +223,6 @@ class MessageCache:
     def invalidate_message_cache(cls, message_id: str):
         """Invalidate all cache entries for a message"""
         # Delete tree cache for this message and its ancestors
-        from .models import Message
         
         try:
             message = Message.objects.get(id=message_id)
