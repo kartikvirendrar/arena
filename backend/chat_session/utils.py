@@ -3,7 +3,8 @@ from django.core.cache import cache
 from django.db.models import Count, Avg, Q
 import json
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from django.utils import timezone
 from chat_session.models import ChatSession
 from message.models import Message
 

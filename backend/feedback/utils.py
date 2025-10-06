@@ -1,7 +1,8 @@
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 import numpy as np
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from django.utils import timezone
 from scipy import stats
 from feedback.models import Feedback
 import csv

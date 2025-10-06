@@ -1,61 +1,48 @@
 from rest_framework import authentication, exceptions
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import AccessToken
 from django.contrib.auth.models import AnonymousUser
-from firebase_admin import auth as firebase_auth
-import logging
 from user.models import User
 from django.utils import timezone
+import logging
 
 logger = logging.getLogger(__name__)
 
 
-class FirebaseAuthentication(authentication.BaseAuthentication):
-    """Custom Firebase authentication class"""
+class FirebaseAuthentication(JWTAuthentication):
+    """Extended JWT authentication to handle our custom User model"""
     
-    def authenticate(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        
-        if not auth_header:
-            return None
-            
+    def get_user(self, validated_token):
         try:
-            # Extract token from Bearer header
-            auth_type, token = auth_header.split(' ')
-            if auth_type.lower() != 'bearer':
-                return None
-                
-            # Verify Firebase token
-            decoded_token = firebase_auth.verify_id_token(token)
-            firebase_uid = decoded_token['uid']
+            user_id = validated_token.get('user_id')
+            user = User.objects.get(id=user_id, is_active=True)
             
-            # Get or create user
-            try:
-                user = User.objects.get(firebase_uid=firebase_uid)
-            except User.DoesNotExist:
-                raise exceptions.AuthenticationFailed('User not found')
+            # Check if anonymous user is expired
+            if user.is_anonymous and user.anonymous_expires_at:
+                if user.anonymous_expires_at < timezone.now():
+                    raise exceptions.AuthenticationFailed('Anonymous session expired')
             
-            return (user, decoded_token)
-            
-        except Exception as e:
-            logger.error(f"Firebase authentication error: {e}")
-            raise exceptions.AuthenticationFailed('Invalid token')
+            return user
+        except User.DoesNotExist:
+            raise exceptions.AuthenticationFailed('User not found')
 
 
 class AnonymousTokenAuthentication(authentication.BaseAuthentication):
-    """Custom authentication for anonymous users using session tokens"""
+    """Fallback authentication for anonymous users using session tokens"""
     
     def authenticate(self, request):
-        # Check for anonymous token in header or session
-        anon_token = request.META.get('HTTP_X_ANONYMOUS_TOKEN') or \
-                    request.session.get('anonymous_token')
+        # Check for anonymous token in header
+        anon_token = request.META.get('HTTP_X_ANONYMOUS_TOKEN')
         
         if not anon_token:
             return None
             
         try:
-            # Find user by anonymous token (stored in preferences)
+            # Find user by anonymous token
             user = User.objects.get(
                 is_anonymous=True,
-                preferences__anonymous_token=anon_token
+                preferences__anonymous_token=anon_token,
+                is_active=True
             )
             
             # Check if expired

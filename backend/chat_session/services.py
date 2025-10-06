@@ -3,7 +3,6 @@ from django.db import transaction
 from django.utils import timezone
 import random
 import json
-import markdown
 
 from chat_session.models import ChatSession
 from ai_model.models import AIModel

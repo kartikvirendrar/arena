@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Share2, Download, Copy, Check } from 'lucide-react';
-import { apiClient, endpoints } from '../../../shared/api';
+import { apiClient } from '../../../shared/api/client';
+import { endpoints } from '../../../shared/api/endpoints';
 import { toast } from 'react-hot-toast';
 
 export function SessionActions({ sessionId }) {

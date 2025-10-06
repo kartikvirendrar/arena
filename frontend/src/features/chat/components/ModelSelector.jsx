@@ -77,7 +77,7 @@ export function ModelSelector() {
                 <button
                   onClick={() => handleModeChange('direct')}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${
-                    mode === 'direct' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'
+                    mode === 'direct' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100'
                   }`}
                 >
                   <Zap size={16} />
@@ -86,7 +86,7 @@ export function ModelSelector() {
                 <button
                   onClick={() => handleModeChange('compare')}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${
-                    mode === 'compare' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'
+                    mode === 'compare' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100'
                   }`}
                 >
                   <GitCompare size={16} />
@@ -95,7 +95,7 @@ export function ModelSelector() {
                 <button
                   onClick={() => handleModeChange('random')}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg ${
-                    mode === 'random' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'
+                    mode === 'random' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100'
                   }`}
                 >
                   <Shuffle size={16} />
@@ -119,7 +119,7 @@ export function ModelSelector() {
                         onClick={() => handleModelSelect(model, 'modelA')}
                         className={`w-full text-left p-3 rounded-lg border ${
                           selectedModels.modelA === model.id
-                            ? 'border-blue-500 bg-blue-50'
+                            ? 'border-orange-500 bg-orange-50'
                             : 'border-gray-300 hover:bg-gray-50'
                         }`}
                       >
@@ -145,7 +145,7 @@ export function ModelSelector() {
                             onClick={() => handleModelSelect(model, 'modelB')}
                             className={`w-full text-left p-3 rounded-lg border ${
                               selectedModels.modelB === model.id
-                                ? 'border-blue-500 bg-blue-50'
+                                ? 'border-orange-500 bg-orange-50'
                                 : 'border-gray-300 hover:bg-gray-50'
                             }`}
                           >
@@ -167,7 +167,7 @@ export function ModelSelector() {
                   (mode === 'direct' && !selectedModels.modelA) ||
                   (mode === 'compare' && (!selectedModels.modelA || !selectedModels.modelB))
                 }
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {mode === 'random' ? 'Start Random Session' : 'Start Session'}
               </button>

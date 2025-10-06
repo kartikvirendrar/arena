@@ -1,3 +1,4 @@
+from ai_model.llm_interactions import get_model_output
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,7 +15,10 @@ from message.streaming import StreamingManager
 from message.permissions import IsMessageOwner
 from chat_session.models import ChatSession
 from user.authentication import FirebaseAuthentication, AnonymousTokenAuthentication
-
+from django.db import transaction
+from django.http import StreamingHttpResponse
+import threading
+import queue
 
 class MessageViewSet(viewsets.ModelViewSet):
     """ViewSet for message management"""
@@ -78,7 +82,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def stream(self, request):
         """Stream a message response"""
-        serializer = MessageStreamSerializer(data=request.data)
+        serializer = MessageStreamSerializer(data=request.data.get('messages'), many=True)
         serializer.is_valid(raise_exception=True)
         
         # Get session from last message or session_id
@@ -90,31 +94,164 @@ class MessageViewSet(viewsets.ModelViewSet):
             )
         
         session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-        
+
+        for message in serializer.validated_data:
+            if message['role'] == 'user':
+                user_message = message
+            elif message['role'] == 'assistant':
+                if session.mode == 'direct':
+                    assistant_message = message
+                else:
+                    if message['participant'] == 'a':
+                        assistant_message_a = message
+                    else:
+                        assistant_message_b = message
+
         # Create user message
-        user_message = MessageService.create_user_message(
-            session=session,
-            content=serializer.validated_data['content'],
-            parent_message_ids=serializer.validated_data.get('parent_message_ids', [])
-        )
-        
-        # Stream response(s)
-        if session.mode == 'compare':
-            generator = MessageComparisonService.stream_dual_responses(
+        with transaction.atomic():
+            user_message = MessageService.create_message(
                 session=session,
-                user_message=user_message,
-                temperature=serializer.validated_data['temperature'],
-                max_tokens=serializer.validated_data['max_tokens']
+                message_obj=user_message
             )
-        else:
-            generator = MessageService.stream_assistant_message(
-                session=session,
-                user_message=user_message,
-                temperature=serializer.validated_data['temperature'],
-                max_tokens=serializer.validated_data['max_tokens']
-            )
+            if session.mode == 'direct':
+                assistant_message = MessageService.create_message(
+                    session=session,
+                    message_obj=assistant_message
+                )
+            else:
+                assistant_message_a = MessageService.create_message(
+                    session=session,
+                    message_obj=assistant_message_a
+                )
+                assistant_message_b = MessageService.create_message(
+                    session=session,
+                    message_obj=assistant_message_b
+                )
         
-        return StreamingManager.create_streaming_response(generator)
+        # # Stream response(s)
+        # if session.mode == 'compare':
+        #     generator = MessageComparisonService.stream_dual_responses(
+        #         session=session,
+        #         user_message=user_message,
+        #         temperature=serializer.validated_data['temperature'],
+        #         max_tokens=serializer.validated_data['max_tokens']
+        #     )
+        # else:
+        #     generator = MessageService.stream_assistant_message(
+        #         session=session,
+        #         user_message=user_message,
+        #         assistant_message=assistant_message,
+        #     )
+            
+        # return StreamingManager.create_streaming_response(generator)
+        
+        history = MessageService._get_conversation_history(session)
+        history.pop()
+
+        def generate():
+            if session.mode == 'direct':
+                try:
+                    full_content = ""
+                    for chunk in get_model_output(
+                        system_prompt="We will be rendering your response on a frontend. so please add spaces or indentation or nextline chars or bullet or numberings etc. suitably for code or the text. wherever required, and do not add any comments about this instruction in your response.",
+                        user_prompt=user_message.content,
+                        history=history,
+                        model="google/gemma-3-12b-it",
+                    ):
+                        if chunk:
+                            full_content += chunk
+                            escaped_chunk = chunk.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '')
+                            yield f'a0:"{escaped_chunk}"\n'
+                    
+                    assistant_message.content = full_content
+                    assistant_message.status = 'success'
+                    assistant_message.save()
+                    
+                    yield 'ad:{"finishReason":"stop"}\n'
+                except Exception as e:
+                    assistant_message.status = 'error'
+                    assistant_message.save()
+                    yield f'ad:{{"finishReason":"error","error":"{str(e)}"}}\n'
+            else:
+                chunk_queue = queue.Queue()
+        
+                def stream_model_a():
+                    full_content_a = ""
+                    try:
+                        for chunk in get_model_output(
+                            system_prompt="We will be rendering your response on a frontend. so please add spaces or indentation or nextline chars or bullet or numberings etc. suitably for code or the text. wherever required, and do not add any comments about this instruction in your response.",
+                            user_prompt=user_message.content,
+                            history=history,
+                            model="google/gemma-3-12b-it"
+                        ):
+                            if chunk:
+                                full_content_a += chunk
+                                escaped_chunk = chunk.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '')
+                                chunk_queue.put(('a', f'a0:"{escaped_chunk}"\n'))
+                        
+                        assistant_message_a.content = full_content_a
+                        assistant_message_a.status = 'success'
+                        assistant_message_a.save()
+                        
+                        chunk_queue.put(('a', 'ad:{"finishReason":"stop"}\n'))
+                        
+                    except Exception as e:
+                        assistant_message_a.status = 'error'
+                        assistant_message_a.save()
+                        chunk_queue.put(('a', f'ad:{{"finishReason":"error","error":"{str(e)}"}}\n'))
+                    finally:
+                        chunk_queue.put(('a', None))
+
+                def stream_model_b():
+                    full_content_b = ""
+                    try:
+                        for chunk in get_model_output(
+                            system_prompt="We will be rendering your response on a frontend. so please add spaces or indentation or nextline chars or bullet or numberings etc. suitably for code or the text. wherever required, and do not add any comments about this instruction in your response.",
+                            user_prompt=user_message.content,
+                            history=history,
+                            model="Qwen/Qwen3-30B-A3B"
+                        ):
+                            if chunk:
+                                full_content_b += chunk
+                                escaped_chunk = chunk.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '')
+                                chunk_queue.put(('b', f'b0:"{escaped_chunk}"\n'))
+                        
+                        assistant_message_b.content = full_content_b
+                        assistant_message_b.status = 'success'
+                        assistant_message_b.save()
+                        
+                        chunk_queue.put(('b', 'bd:{"finishReason":"stop"}\n'))
+                        
+                    except Exception as e:
+                        assistant_message_b.status = 'error'
+                        assistant_message_b.save()
+                        chunk_queue.put(('b', f'bd:{{"finishReason":"error","error":"{str(e)}"}}\n'))
+                    finally:
+                        chunk_queue.put(('b', None))
+
+                thread_a = threading.Thread(target=stream_model_a)
+                thread_b = threading.Thread(target=stream_model_b)
+                
+                thread_a.start()
+                thread_b.start()
+                
+                completed = {'a': False, 'b': False}
+                
+                while not all(completed.values()):
+                    try:
+                        model, chunk = chunk_queue.get(timeout=0.1)
+                        if chunk is None:
+                            completed[model] = True
+                        else:
+                            yield chunk
+                    except queue.Empty:
+                        continue
+                
+                thread_a.join()
+                thread_b.join()
+    
+        return StreamingHttpResponse(generate(), content_type='text/plain')
+
     
     @action(detail=True, methods=['get'])
     def tree(self, request, pk=None):

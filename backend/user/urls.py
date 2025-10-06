@@ -4,19 +4,22 @@ from user.views import (
     UserViewSet,
     GoogleAuthView,
     AnonymousAuthView,
-    UserStatsView
+    UserStatsView,
+    RefreshTokenView
 )
 
 app_name = 'user'
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     # Authentication endpoints
     path('auth/google/', GoogleAuthView.as_view(), name='google-auth'),
     path('auth/anonymous/', AnonymousAuthView.as_view(), name='anonymous-auth'),
-    
+    path('auth/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+    path('users/me/', UserViewSet.as_view({'get': 'me'}), name='user-me'),
     # User stats
     path('users/stats/', UserStatsView.as_view(), name='user-stats'),
     

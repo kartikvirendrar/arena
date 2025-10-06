@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Avg, Q
-from datetime import timedelta, timezone, datetime
+from datetime import timedelta, datetime
+from django.utils import timezone
 
 from feedback.models import Feedback
 from feedback.serializers import (

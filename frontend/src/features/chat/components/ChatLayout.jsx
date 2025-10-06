@@ -3,30 +3,40 @@ import { useSelector } from 'react-redux';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ModelSelector } from './ModelSelector';
+import { SessionActions } from './SessionActions';
+import { AuthPromptBanner } from '../../auth/components/AuthPromptBanner';
 
 export function ChatLayout() {
   const { activeSession } = useSelector((state) => state.chat);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <ChatSidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+    <div className="flex flex-col h-screen">
+      {/* Auth Prompt Banner */}
+      <AuthPromptBanner />
       
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">
-              {activeSession ? `Session: ${activeSession.title || activeSession.id}` : 'New Chat'}
-            </h1>
-            <ModelSelector />
-          </div>
-        </header>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <ChatSidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
         
-        {/* Chat Window */}
-        <ChatWindow />
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {activeSession ? `Session: ${activeSession.title || activeSession.id.slice(0, 8)}` : 'New Chat'}
+                </h1>
+                {activeSession && <SessionActions sessionId={activeSession.id} />}
+              </div>
+              <ModelSelector />
+            </div>
+          </header>
+          
+          {/* Chat Window */}
+          <ChatWindow />
+        </div>
       </div>
     </div>
   );

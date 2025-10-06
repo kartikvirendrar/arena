@@ -44,7 +44,7 @@ const chatSlice = createSlice({
       state.messages[sessionId].push(message);
     },
     updateStreamingMessage: (state, action) => {
-      const { sessionId, messageId, chunk, isComplete } = action.payload;
+      const { sessionId, messageId, chunk, isComplete, participant='a' } = action.payload;
       
       if (!state.streamingMessages[sessionId]) {
         state.streamingMessages[sessionId] = {};
@@ -58,6 +58,7 @@ const chatSlice = createSlice({
       }
       
       state.streamingMessages[sessionId][messageId].content += chunk;
+      state.streamingMessages[sessionId][messageId].participant = participant;
       state.streamingMessages[sessionId][messageId].isComplete = isComplete;
       
       if (isComplete) {
@@ -67,6 +68,7 @@ const chatSlice = createSlice({
           content: state.streamingMessages[sessionId][messageId].content,
           role: 'assistant',
           timestamp: new Date().toISOString(),
+          participant: participant,
         };
         
         if (!state.messages[sessionId]) {
@@ -75,6 +77,14 @@ const chatSlice = createSlice({
         state.messages[sessionId].push(message);
         
         delete state.streamingMessages[sessionId][messageId];
+      }
+    },
+    setSessionState: (state, action) => {
+      const { sessionId, messages, sessionData } = action.payload;
+      state.messages[sessionId] = messages || [];
+      const sessionIndex = state.sessions.findIndex(s => s.id === sessionId);
+      if (sessionIndex !== -1 && sessionData) {
+        state.sessions[sessionIndex] = { ...state.sessions[sessionIndex], ...sessionData };
       }
     },
   },
@@ -90,5 +100,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { setActiveSession, addMessage, updateStreamingMessage } = chatSlice.actions;
+export const { setActiveSession, addMessage, updateStreamingMessage, setSessionState } = chatSlice.actions;
 export default chatSlice.reducer;

@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../../../config/firebase';
 import { loginWithGoogle, loginAnonymously } from '../store/authSlice';
 import { toast } from 'react-hot-toast';
 
@@ -23,19 +25,14 @@ export function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      // Initialize Google Sign-In
-      const googleAuth = window.google.accounts.oauth2.initTokenClient({
-        client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-        scope: 'email profile',
-        callback: async (response) => {
-          if (response.access_token) {
-            await dispatch(loginWithGoogle(response.access_token)).unwrap();
-            toast.success('Successfully logged in!');
-          }
-        },
-      });
-      googleAuth.requestAccessToken();
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      const idToken = await result.user.getIdToken();
+      
+      await dispatch(loginWithGoogle(idToken)).unwrap();
+      toast.success('Successfully logged in!');
     } catch (error) {
+      console.error('Google login error:', error);
       toast.error('Google login failed');
     }
   };

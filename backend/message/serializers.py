@@ -123,16 +123,38 @@ class MessageCreateSerializer(serializers.ModelSerializer):
 
 class MessageStreamSerializer(serializers.Serializer):
     """Serializer for streaming message creation"""
-    content = serializers.CharField(required=True)
-    model_id = serializers.UUIDField(required=False)
+    id = serializers.UUIDField(required=False)
+    content = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    role = serializers.CharField(required=True)
     parent_message_ids = serializers.ListField(
         child=serializers.UUIDField(),
         required=False,
         default=list
     )
+    modelId = serializers.CharField(required=False)
+    participant = serializers.CharField(required=False)
+    status = serializers.ChoiceField(choices=['pending', 'streaming', 'success', 'failed'], required=True)
     temperature = serializers.FloatField(default=0.7, min_value=0, max_value=2)
     max_tokens = serializers.IntegerField(default=2000, min_value=1, max_value=8000)
     stream = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        role = attrs.get('role')
+        content = attrs.get('content')
+        if role == 'assistant':
+            try:
+                AIModel.objects.get(id=attrs.get('modelId'), is_active=True)
+            except AIModel.DoesNotExist:
+                raise serializers.ValidationError("One or both models not found or inactive")
+            # hanfle participant for compare mode
+            # handle participant for compare mode
+
+        if role != 'assistant' and not content:
+            raise serializers.ValidationError({
+                'content': 'This field is required when role is not "assistant".'
+            })
+
+        return attrs
 
 
 class MessageTreeSerializer(serializers.ModelSerializer):

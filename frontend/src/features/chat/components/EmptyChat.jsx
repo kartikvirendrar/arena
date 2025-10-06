@@ -1,6 +1,16 @@
 import { MessageSquare, Zap, GitCompare, Shuffle } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { WelcomeMessage } from './WelcomeMessage';
 
 export function EmptyChat() {
+  const { isAnonymous } = useSelector((state) => state.auth);
+  const { sessions } = useSelector((state) => state.chat);
+  
+  // Show welcome message for new users
+  if (sessions.length === 0) {
+    return <WelcomeMessage isAnonymous={isAnonymous} />;
+  }
+  
   return (
     <div className="flex-1 flex items-center justify-center bg-gray-50">
       <div className="text-center max-w-2xl">

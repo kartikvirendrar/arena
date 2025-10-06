@@ -4,8 +4,10 @@ export const endpoints = {
     auth: {
       google: '/auth/google/',
       anonymous: '/auth/anonymous/',
+      refresh: '/auth/refresh/',
       currentUser: '/users/me/',
       updatePreferences: '/users/update_preferences/',
+      deleteAccount: '/users/delete_account/',
     },
     
     // Model endpoints
