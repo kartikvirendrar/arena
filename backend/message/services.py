@@ -1,4 +1,4 @@
-from datetime import timezone
+from django.utils import timezone
 from typing import List, Dict, Optional, AsyncGenerator
 from django.db import transaction
 from message.serializers import MessageSerializer
@@ -10,16 +10,17 @@ from message.models import Message, MessageRelation
 from chat_session.models import ChatSession
 from ai_model.models import AIModel
 from ai_model.services import AIModelService
+from typing import List, Dict, Generator
 from django.db.models import F
+from ai_model.llm_interactions import get_model_output
 
 class MessageService:
     """Service for managing messages"""
     
     @staticmethod
-    def create_user_message(
+    def create_message(
         session: ChatSession,
-        content: str,
-        parent_message_ids: List[str] = None,
+        message_obj: dict,
         attachments: List[Dict] = None
     ) -> Message:
         """Create a user message"""
@@ -33,25 +34,30 @@ class MessageService:
             
             # Create message
             message = Message.objects.create(
+                id=message_obj['id'],
                 session=session,
-                role='user',
-                content=content,
-                parent_message_ids=parent_message_ids or [],
+                role=message_obj['role'],
+                content=message_obj['content'],
+                parent_message_ids=message_obj['parent_message_ids'] or [],
                 position=position,
-                status='success',
+                participant=message_obj.get('participant'),
+                model = AIModel.objects.get(pk=message_obj['modelId']) if message_obj.get('modelId') else None,
+                status='success' if message_obj['role'] == 'user' else 'streaming',
                 attachments=attachments or []
             )
             
             # Update parent messages
-            if parent_message_ids:
-                Message.objects.filter(
-                    id__in=parent_message_ids
-                ).update(
-                    child_ids=F('child_ids') + [message.id]
-                )
+            if message_obj['parent_message_ids']:
+                # Fetch parent messages and update their child_ids
+                parent_messages = Message.objects.filter(id__in=message_obj['parent_message_ids'])
+                for parent_msg in parent_messages:
+                    if parent_msg.child_ids is None:
+                        parent_msg.child_ids = []
+                    parent_msg.child_ids.append(message.id)
+                    parent_msg.save(update_fields=['child_ids'])
                 
                 # Create relations
-                for parent_id in parent_message_ids:
+                for parent_id in message_obj['parent_message_ids']:
                     MessageRelation.objects.create(
                         parent_id=parent_id,
                         child=message
@@ -67,14 +73,15 @@ class MessageService:
             return message
     
     @staticmethod
-    async def stream_assistant_message(
+    def stream_assistant_message(
         session: ChatSession,
         user_message: Message,
+        assistant_message: Message,
         model: AIModel = None,
         participant: str = None,
         temperature: float = 0.7,
         max_tokens: int = 2000
-    ) -> AsyncGenerator[Dict, None]:
+    ) -> Generator[Dict, None]:
         """Stream assistant response"""
         # Determine model
         if not model:
@@ -82,45 +89,45 @@ class MessageService:
                 model = session.model_a
             elif session.mode == 'compare':
                 model = session.model_a if participant == 'a' else session.model_b
-        
+
         if not model:
             raise ValueError("No model specified")
         
         # Create assistant message placeholder
-        assistant_message = await sync_to_async(Message.objects.create)(
-            session=session,
-            role='assistant',
-            content='',
-            model=model,
-            parent_message_ids=[user_message.id],
-            position=user_message.position + 1,
-            participant=participant,
-            status='streaming',
-            metadata={
-                'temperature': temperature,
-                'max_tokens': max_tokens
-            }
-        )
+        # assistant_message = await sync_to_async(Message.objects.create)(
+        #     session=session,
+        #     role='assistant',
+        #     content='',
+        #     model=model,
+        #     parent_message_ids=[user_message.id],
+        #     position=user_message.position + 1,
+        #     participant=participant,
+        #     status='streaming',
+        #     metadata={
+        #         'temperature': temperature,
+        #         'max_tokens': max_tokens
+        #     }
+        # )
         
         # Update parent
-        await sync_to_async(MessageService._update_parent_child_ids)(
-            user_message.id, 
-            assistant_message.id
-        )
-        
+        # await sync_to_async(MessageService._update_parent_child_ids)(
+        #     user_message.id, 
+        #     assistant_message.id
+        # )
+
         try:
             # Get conversation history
-            messages = await sync_to_async(MessageService._get_conversation_history)(session)
+            messages = MessageService._get_conversation_history(session)
             
             # Stream from AI model
             ai_service = AIModelService()
             content_chunks = []
             
-            async for chunk in ai_service.stream_completion(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
+            for chunk in get_model_output(
+                system_prompt="We will be rendering your response on a frontend. so please add spaces or indentation or nextline chars or bullet or numberings etc. suitably for code or the text. wherever required, and do not add any comments about this instruction in your response.",
+                user_prompt=user_message.content,
+                history=messages,
+                model="google/gemma-3-12b-it",
             ):
                 content_chunks.append(chunk)
                 assistant_message.content = ''.join(content_chunks)
@@ -135,31 +142,31 @@ class MessageService:
                 
                 # Send WebSocket update periodically
                 if len(content_chunks) % 10 == 0:
-                    await sync_to_async(MessageService._send_message_update)(
+                    MessageService._send_message_update(
                         assistant_message, 'streaming'
                     )
             
             # Final update
             assistant_message.status = 'success'
             assistant_message.metadata['completion_tokens'] = len(''.join(content_chunks).split())
-            await sync_to_async(assistant_message.save)()
+            assistant_message.save()
             
             # Send final WebSocket update
-            await sync_to_async(MessageService._send_message_update)(
+            MessageService._send_message_update(
                 assistant_message, 'completed'
             )
             
             yield {
                 'type': 'complete',
                 'message_id': str(assistant_message.id),
-                'message': await sync_to_async(MessageSerializer)(assistant_message).data
+                'message': MessageSerializer(assistant_message).data
             }
             
         except Exception as e:
             # Update message with error
             assistant_message.status = 'failed'
             assistant_message.failure_reason = str(e)
-            await sync_to_async(assistant_message.save)()
+            assistant_message.save()
             
             yield {
                 'type': 'error',

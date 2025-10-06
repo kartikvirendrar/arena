@@ -10,9 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 from celery.schedules import crontab
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,8 +31,29 @@ SECRET_KEY = "django-insecure-@r7r$^v&pkqi*%plz(obg#2yt0hie(^-*3t1@j28v+o0fly@-#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['http://127.0.0.1:3000', 'localhost', '127.0.0.1']
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+}
 
 # Application definition
 
@@ -46,10 +71,14 @@ INSTALLED_APPS = [
     "message",
     "model_metrics",
     "user",
-    "channels"
+    "channels",
+    "drf_yasg",
+    "corsheaders",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -58,6 +87,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "arena_backend.urls"
 
@@ -77,6 +110,10 @@ TEMPLATES = [
     },
 ]
 
+TEMPLATE_LOADERS = (
+    'django.template.loaders.eggs.Loader',
+)
+
 WSGI_APPLICATION = "arena_backend.wsgi.application"
 
 REST_FRAMEWORK = {
@@ -88,18 +125,24 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
-    ],
 }
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # React dev server
     "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-anonymous-token',
 ]
 
 
@@ -108,8 +151,12 @@ CORS_ALLOWED_ORIGINS = [
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
     }
 }
 
@@ -216,15 +263,21 @@ AI_MODEL_CONFIG = {
 }
 
 # Channels configuration
-ASGI_APPLICATION = 'your_project.asgi.application'
+ASGI_APPLICATION = 'arena_backend.asgi.application'
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [('127.0.0.1', 6379)],
+#         },
+#     },
+# }
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
 }
 
 # WebSocket authentication
@@ -232,3 +285,31 @@ CHANNELS_MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'user.middleware.WebSocketAuthMiddleware',  # Custom middleware for token auth
 ]
+
+# try:
+#     from user.firebase_init import initialize_firebase
+#     # Firebase will be initialized when settings are loaded
+# except Exception as e:
+#     print(f"Failed to initialize Firebase: {e}")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+
+# For frontend config (public keys)
+FIREBASE_CONFIG = {
+  "apiKey": os.getenv("FIREBASE_API_KEY"),
+  "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+  "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+  "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+  "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+  "appId": os.getenv("FIREBASE_APP_ID"),
+  "databaseURL":"",
+}
+
+# Anonymous User Settings
+ANONYMOUS_USER_SETTINGS = {
+    'SESSION_EXPIRY_DAYS': 30,
+    'MESSAGE_LIMIT': 20,
+    'SESSION_LIMIT': 3,
+    'ALLOW_MODEL_SELECTION': True,  # Allow guests to choose models
+    'ALLOWED_MODELS': ['gpt-3.5-turbo', 'claude-2', 'gemini-pro'],  # Limit premium models
+}

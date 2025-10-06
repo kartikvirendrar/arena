@@ -1,10 +1,12 @@
+from datetime import timedelta
 from rest_framework import viewsets, status, views
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.utils import timezone
 from django.db import transaction
-import uuid
+import logging
 
 from .models import User
 from .serializers import (
@@ -12,12 +14,15 @@ from .serializers import (
     AnonymousAuthSerializer, GoogleAuthSerializer
 )
 from .services import UserService
-from .authentication import FirebaseAuthentication, AnonymousTokenAuthentication
+from .authentication import AnonymousTokenAuthentication, FirebaseAuthentication
 from .permissions import IsOwnerOrReadOnly
 from django.db.models import Count
 from message.models import Message
 from django.db.models.functions import TruncDate
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet for user management"""
@@ -50,18 +55,6 @@ class UserViewSet(viewsets.ModelViewSet):
         )
         
         return Response(UserSerializer(user).data)
-    
-    @action(detail=False, methods=['post'])
-    def delete_account(self, request):
-        """Soft delete user account"""
-        user = request.user
-        user.is_active = False
-        user.save()
-        
-        return Response(
-            {"message": "Account deleted successfully"},
-            status=status.HTTP_204_NO_CONTENT
-        )
 
 
 class GoogleAuthView(views.APIView):
@@ -73,20 +66,20 @@ class GoogleAuthView(views.APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Verify Firebase token
-        firebase_user = UserService.verify_firebase_token(
+        # Verify Google token with Pyrebase
+        google_user_info = UserService.verify_google_token_with_pyrebase(
             serializer.validated_data['id_token']
         )
         
-        if not firebase_user:
+        if not google_user_info:
             return Response(
-                {"error": "Invalid token"},
+                {"error": "Invalid Google token"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
         # Get or create user
         with transaction.atomic():
-            user = UserService.get_or_create_google_user(firebase_user)
+            user = UserService.get_or_create_google_user(google_user_info)
             
             # Check if there's an anonymous session to merge
             anon_token = request.META.get('HTTP_X_ANONYMOUS_TOKEN')
@@ -102,11 +95,12 @@ class GoogleAuthView(views.APIView):
                 except User.DoesNotExist:
                     pass
         
-        # Generate response
+        # Generate JWT tokens
+        tokens = UserService.get_tokens_for_user(user)
+        
         return Response({
             'user': UserSerializer(user).data,
-            'token': serializer.validated_data['id_token'],  # Return same token
-            'firebase_uid': firebase_user['uid']
+            'tokens': tokens
         })
 
 
@@ -120,25 +114,30 @@ class AnonymousAuthView(views.APIView):
         serializer.is_valid(raise_exception=True)
         
         # Create anonymous user
-        user = serializer.save()
+        user = UserService.create_anonymous_user(
+            display_name=serializer.validated_data.get('display_name')
+        )
         
-        # Generate anonymous token
-        anon_token = str(uuid.uuid4())
-        user.preferences['anonymous_token'] = anon_token
-        user.save()
-        
-        # Store in session
-        request.session['anonymous_token'] = anon_token
-        request.session['user_id'] = str(user.id)
+        # Generate JWT tokens
+        tokens = UserService.get_tokens_for_user(user)
         
         return Response({
             'user': UserSerializer(user).data,
-            'anonymous_token': anon_token,
+            'tokens': tokens,
+            'anonymous_token': user.preferences.get('anonymous_token'),
             'expires_at': user.anonymous_expires_at
         })
 
-# apps/user/views.py (continued)
 
+class RefreshTokenView(TokenObtainPairView):
+    """Custom token refresh view"""
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            # You can add custom logic here
+            logger.info(f"Token refreshed for user")
+        return response
+        
 class UserStatsView(views.APIView):
     """Get user statistics"""
     authentication_classes = [FirebaseAuthentication, AnonymousTokenAuthentication]

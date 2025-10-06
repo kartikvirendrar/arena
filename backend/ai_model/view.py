@@ -40,8 +40,8 @@ class AIModelViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         
         # Filter by active status
-        if not self.request.user.is_staff:
-            queryset = queryset.filter(is_active=True)
+        # if not self.request.user.is_staff:
+        queryset = queryset.filter(is_active=True)
         
         # Filter by provider
         provider = self.request.query_params.get('provider')

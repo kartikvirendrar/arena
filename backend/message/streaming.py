@@ -8,11 +8,11 @@ class StreamingManager:
     """Manage streaming responses"""
     
     @staticmethod
-    def create_streaming_response(generator: AsyncGenerator) -> StreamingHttpResponse:
+    def create_streaming_response(generator) -> StreamingHttpResponse:
         """Create a streaming HTTP response from an async generator"""
-        async def event_stream():
+        def event_stream():
             try:
-                async for data in generator:
+                for data in generator:
                     # Format as Server-Sent Events
                     yield f"data: {json.dumps(data)}\n\n"
                 
@@ -23,23 +23,23 @@ class StreamingManager:
                 # Send error event
                 yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
         
-        # Convert async generator to sync for Django
-        def sync_wrapper():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        # # Convert async generator to sync for Django
+        # def sync_wrapper():
+        #     loop = asyncio.new_event_loop()
+        #     asyncio.set_event_loop(loop)
             
-            try:
-                async_gen = event_stream()
-                while True:
-                    try:
-                        yield loop.run_until_complete(async_gen.__anext__())
-                    except StopAsyncIteration:
-                        break
-            finally:
-                loop.close()
+        #     try:
+        #         async_gen = event_stream()
+        #         while True:
+        #             try:
+        #                 yield loop.run_until_complete(async_gen.__anext__())
+        #             except StopAsyncIteration:
+        #                 break
+        #     finally:
+        #         loop.close()
         
         response = StreamingHttpResponse(
-            sync_wrapper(),
+            event_stream(),
             content_type='text/event-stream'
         )
         response['Cache-Control'] = 'no-cache'

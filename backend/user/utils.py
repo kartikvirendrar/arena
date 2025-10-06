@@ -3,7 +3,8 @@ from django.core.cache import cache
 from typing import Optional, Dict
 import jwt
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from django.utils import timezone
 import logging
 from .models import User
 from chat_session.models import ChatSession
